@@ -12,7 +12,8 @@ edition = "2018"
 
 
 [features]
-default = ["any"]
+default = ["std", "any"]
+std = []
 any = []
 nightly = []
 derive = ["better_typeid_derive"]

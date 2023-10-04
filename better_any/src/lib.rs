@@ -2,6 +2,7 @@
 #![warn(rust_2018_idioms)]
 #![cfg_attr(feature = "nightly", feature(coerce_unsized))]
 #![cfg_attr(feature = "nightly", feature(ptr_metadata))]
+#![cfg_attr(not(feature = "std"), no_std)]
 //! # Better Any
 //!
 //! Rust RFC for `non_static_type_id` feature has been reverted.
@@ -50,7 +51,10 @@
 //! It is safe because created trait object preserves lifetime information,
 //! thus allowing us to safely downcast with proper lifetime.
 //! Otherwise internally it is plain old `Any`.
-use std::any::{Any, TypeId};
+extern crate alloc;
+use core::any::{Any, TypeId};
+use alloc::boxed::Box;
+use alloc::vec::Vec;
 
 /// Attribute macro that makes your implementation of `TidAble` safe
 /// Use it when you can't use derive e.g. for trait object.
@@ -347,7 +351,7 @@ impl<'a> dyn Tid<'a> + 'a {
     /// See examples how it does relate to other downcast methods
     ///
     /// ```rust
-    /// # use std::any::Any;
+    /// # use core::any::Any;
     /// # use better_any::{Tid, TidAble, TidExt,tid};
     /// struct S;
     /// tid!(S);
@@ -385,16 +389,18 @@ impl<'a> dyn Tid<'a> + 'a {
     }
 }
 
-use std::cell::*;
-use std::rc::*;
-use std::sync::*;
+use core::cell::*;
+use alloc::rc::*;
+use alloc::sync::*;
 tid!(impl<'a, T> TidAble<'a> for Box<T> where T:?Sized);
 tid!(impl<'a, T> TidAble<'a> for Rc<T>);
 tid!(impl<'a, T> TidAble<'a> for RefCell<T>);
 tid!(impl<'a, T> TidAble<'a> for Cell<T>);
 tid!(impl<'a, T> TidAble<'a> for Arc<T>);
-tid!(impl<'a, T> TidAble<'a> for Mutex<T>);
-tid!(impl<'a, T> TidAble<'a> for RwLock<T>);
+#[cfg(feature = "std")]
+tid!(impl<'a, T> TidAble<'a> for std::sync::Mutex<T>);
+#[cfg(feature = "std")]
+tid!(impl<'a, T> TidAble<'a> for std::sync::RwLock<T>);
 
 // tid! {impl<'a, T> TidAble<'a> for Option<T>}
 const _: () = {
